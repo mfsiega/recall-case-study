@@ -11,8 +11,7 @@ class AnswerGenerator:
             self.summaries.append(summaries[str(i)])
 
     def _construct_query_prompt(self, query, relevant_summary_indices):
-        relevant_summaries = [self.summaries[index.item()] for index in relevant_summary_indices]
-        context = "\n\n".join([f"{i+1}. {summary}" for i, summary in enumerate(relevant_summaries)])
+        context = "\n\n".join([f"Summary {i}: {self.summaries[i]}" for i in relevant_summary_indices])
         return f"""
                 The user has asked a question. Answer the question, based on the information in the listed summaries provided.
 
