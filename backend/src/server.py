@@ -20,16 +20,20 @@ class QueryServer:
         self.entities = entities
 
     def _get_related_topic_info(self, related_topics):
-        results = []
+        results = ["\n\n**Extracted topics**:"]
         for topic in related_topics:
             # Find the summary nodes that are connected to this topic.
-            references = ", ".join(str(node)
+            summaries = [str(node)
                           for node in self.entity_graph.neighbors(topic) 
-                          if self.entity_graph.nodes[node]['type'] == 'SUMMARY')
-            results.append(f"""
-            {topic}: mentioned in summary {references}
-            """)
+                          if self.entity_graph.nodes[node]['type'] == 'SUMMARY']
+            if len(summaries) > 15:
+                continue # This is a sign that it's too general to be interesting
+            references = ", ".join(summaries)
+            results.append(f"- {topic}: mentioned in summary {references}")
         return "\n".join(results)
+    
+    def _get_relevant_summary_info(self, related_summaries):
+        return "".join(["**Relevant summaries**: ", ", ".join(str(x) for x in related_summaries)])
 
     def handle_query(self, query):
         related_summaries = self.related_summary_finder.find(query)
@@ -37,7 +41,8 @@ class QueryServer:
         answer = self.answer_generator.generate(query, related_summaries)
         related_topics = self.related_topic_generator.generate(query)
         related_topic_info = self._get_related_topic_info(related_topics)
-        return "\n\n".join([answer, related_topic_info])
+        relevant_summary_info = self._get_relevant_summary_info(related_summaries)
+        return "\n\n".join([relevant_summary_info, answer, related_topic_info])
     
 def _load_dataset(path):
     with open(path + "/embeddings.json", 'r', encoding='utf-8') as file:
