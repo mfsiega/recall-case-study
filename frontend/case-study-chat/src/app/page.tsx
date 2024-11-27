@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 
+type Message = {
+  role: string;
+  content: string;
+};
+
 export default function Home() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
 
   const sendMessage = async () => {
