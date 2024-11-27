@@ -1,10 +1,7 @@
-import re
 import sys
-import time
 from openai import OpenAI
 import numpy as np
 import json
-import spacy
 
 # Reads the API key from env var OPENAI_API_KEY by default.
 client = OpenAI()
