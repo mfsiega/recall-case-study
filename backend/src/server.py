@@ -1,111 +1,43 @@
 import json
-import re
+import logging
 import sys
-import faiss
-import numpy as np
 from openai import OpenAI
 from backend.src import build_entity_graph
+from backend.src.answer_generator import AnswerGenerator
+from backend.src.related_summary_finder import RelatedSummaryFinder
+from backend.src.related_topic_generator import topic_generator_for_entity_graph
+
+LOG = logging.getLogger('uvicorn.error')
 
 class QueryServer:
     def __init__(self, summaries, embeddings, entities, client: OpenAI):
-        self.summaries = summaries
-        self.embeddings = np.array(embeddings)
-        self.entities = entities
-        self.client = client
-        self.faiss_index = faiss.IndexFlatL2(self.embeddings.shape[1])
-        self.faiss_index.add(self.embeddings)
+        self.related_summary_finder = RelatedSummaryFinder(client, embeddings)
+        self.answer_generator = AnswerGenerator(client, summaries)
         self.entity_graph = build_entity_graph.build_graph(entities)
-
-    def _embeddings_for_query(self, query):
-        response = self.client.embeddings.create(
-            model="text-embedding-ada-002",
-            input=query
+        self.related_topic_generator = topic_generator_for_entity_graph(
+            self.entity_graph
         )
-        return response.data[0].embedding
-    
-    def _relevant_summary_indices(self, query_embedding, N=3):
-        distances, indices = self.faiss_index.search(np.array([query_embedding]), N)
-        print(distances)
-        print(indices)
-        return indices[0]
+        self.entities = entities
 
-    def _construct_query_prompt(self, query, relevant_summary_indices):
-        relevant_summaries = [self.summaries[index] for index in relevant_summary_indices]
-        context = "\n\n".join([f"{i+1}. {summary}" for i, summary in enumerate(relevant_summaries)])
-        return f"""
-                The user has asked a question. Answer the question, based on the information in the listed summaries provided.
-
-                Keep your answer short, since it's to be read in a chat application.
-
-                Summaries:
-                {context}
-
-                User question: {query}
-
-                Answer:
-                """
-    
-    def _generate_answer(self, query_prompt):
-        # Call the OpenAI API for a natural language response
-        response = self.client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "user", "content": query_prompt}
-            ],
-        )
-        return response.choices[0].message.content
-    
-    def _extract_entities(self, answer):
-        print(answer)
-        match = re.search(r"Key entities:\s*(.+)", answer)
-        if match:
-            return [entity.lower() for entity in match.group(1).split(", ")[:5]]
-        else:
-            print("No entities found.")
-            return []
-
-    
-    def _find_related_summaries(self, entities):
-        results = {}
-        for entity in entities:
-            try:
-                results[entity] = []
-                for neighbor in self.entity_graph.neighbors(entity):
-                    results[entity].append(neighbor)
-            except:
-                pass
-        return results
-    
-    def _append_related_summaries(self, answer, related_summaries):
-        answer += "\n"
-        for key, value in related_summaries.items():
-            answer += "%s: %s\n" % (key, ", ".join(str(x) for x in value))
-        return answer
+    def _get_related_topic_info(self, related_topics):
+        results = []
+        for topic in related_topics:
+            # Find the summary nodes that are connected to this topic.
+            references = ", ".join(str(node)
+                          for node in self.entity_graph.neighbors(topic) 
+                          if self.entity_graph.nodes[node]['type'] == 'SUMMARY')
+            results.append(f"""
+            {topic}: mentioned in summary {references}
+            """)
+        return "\n".join(results)
 
     def handle_query(self, query):
-        # Get the embeddings for the query.
-        query_embedding = self._embeddings_for_query(query)
-
-        # Find the relevant summaries.
-        relevant_summary_indices = self._relevant_summary_indices(query_embedding)
-
-        # Construct query prompt.
-        query_prompt = self._construct_query_prompt(query, relevant_summary_indices)
-
-        # Generate answer.
-        answer = self._generate_answer(query_prompt)
-        print(answer)
-
-        # Extract entities from answer.
-        entities = self._extract_entities(answer)
-        print(entities)
-
-        # Find summaries that have the same entities as the answer.
-        related_summaries = self._find_related_summaries(entities)
-        
-        answer = self._append_related_summaries(answer, related_summaries)
-
-        return answer
+        related_summaries = self.related_summary_finder.find(query)
+        LOG.info("Related summaries: %s", related_summaries)
+        answer = self.answer_generator.generate(query, related_summaries)
+        related_topics = self.related_topic_generator.generate(query)
+        related_topic_info = self._get_related_topic_info(related_topics)
+        return "\n\n".join([answer, related_topic_info])
     
 def _load_dataset(path):
     with open(path + "/embeddings.json", 'r', encoding='utf-8') as file:

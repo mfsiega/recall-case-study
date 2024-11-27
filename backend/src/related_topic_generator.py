@@ -10,7 +10,7 @@ import networkx as nx
 class RelatedTopicGenerator:
     def __init__(self, client: OpenAI, topics):
         self.client = client
-        self.topics
+        self.topics = topics
 
     def _construct_prompt(self, query):
         context = "\n".join(self.topics)
@@ -23,7 +23,7 @@ class RelatedTopicGenerator:
         Give your answer as a JSON list.
         """
 
-    def get_related_topics(self, query):
+    def generate(self, query):
         prompt = self._construct_prompt(query)
         response = self.client.chat.completions.create(
             model="gpt-4o-mini",

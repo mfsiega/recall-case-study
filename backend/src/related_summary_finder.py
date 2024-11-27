@@ -23,6 +23,6 @@ class RelatedSummaryFinder:
         _, indices = self.faiss_index.search(np.array([query_embedding]), N)
         return indices[0]
 
-    def find_related_summaries(self, query):
+    def find(self, query):
         query_embedding = self._embeddings_for_query(query)
         return self._relevant_summary_indices(query_embedding)
