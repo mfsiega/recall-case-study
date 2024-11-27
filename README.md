@@ -10,16 +10,16 @@ Create a chat application that allows users to interact with a dataset of video 
 
 ### Prerequisites
 
-- python3
-- npm
+- Docker
 
 ### Steps
 
-1. Check out the repository.
-2. `pip install` from the `requirements.txt`.
-3. From the root, run `fastapi dev backend/src/main.py`.
-4. In another terminal, `cd` into `frontend/case-study-chat` and run `npm run dev`.
-5. The chat app is running on `localhost:3000`.
+1. Check out the repository
+2. Go into the `backend` directory, run `docker build -t chat-api-server .`
+3. Run `docker run -e OPENAI_API_KEY=<key> -d -p 8000:8000 chat-api-server`
+4. Go into the `frontend/case-study-chat` directory, run `docker build -t chat-frontend .`
+5. Run `docker run -p 3000:3000 chat-frontend`
+6. Access the app at `localhost:3000`
 
 ## Approach
 
