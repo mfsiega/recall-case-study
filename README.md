@@ -6,11 +6,22 @@ Michael Siega, mf.siega@gmail.com, 2024-11-26
 
 Create a chat application that allows users to interact with a dataset of video summaries.
 
+## tl;dr
+
+If you just want some pointers to quickly review what I've done:
+
+- `backend/src/main.py` is the entrypoint to the server. Most of the code lives in that directory.
+- `backend/preprocessing` has some scripts that I used to generate e.g., embeddings for the summaries.
+- `frontend/case-study-chat/src/app/page.tsx` has the actual frontend, but it's very minimal.
+
 ## To run locally
 
 ### Prerequisites
 
 - Docker
+- An OpenAI API key
+
+NOTE: I've bundled the preprocessed data e.g., embeddings in the `backend/data` directory for convenience.
 
 ### Steps
 
