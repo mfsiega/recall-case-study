@@ -8,23 +8,26 @@ import networkx as nx
 # `topics` are the topics from our set of summaries. We'll use GPT to identify which
 # are probably most relevant to the query.
 class RelatedTopicGenerator:
-    def __init__(self, client: OpenAI, topics):
+    def __init__(self, client: OpenAI, topics, entities):
         self.client = client
         self.topics = topics
+        self.entities = entities
 
-    def _construct_prompt(self, query):
-        context = "\n".join(self.topics)
+    def _construct_prompt(self, query, answer):
+        context = "\n".join(self.topics + self.entities)
         return f"""
         Given the question: {query}
 
-        What topics might be relevant to this question? Pick the best 2-5 from this list:
+        And the answer: {answer}
+
+        What topics or entities might be relevant? Pick the best 2-5 from this list:
         {context}
 
         Give your answer as a JSON list.
         """
 
-    def generate(self, query):
-        prompt = self._construct_prompt(query)
+    def generate(self, query, answer):
+        prompt = self._construct_prompt(query, answer)
         response = self.client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -37,4 +40,5 @@ class RelatedTopicGenerator:
 def topic_generator_for_entity_graph(G: nx.Graph) -> RelatedTopicGenerator:
     # Get the topics out of the entity graph.
     topics = [node[0] for node in G.nodes.items() if node[1]['type'] == 'TOPIC']
-    return RelatedTopicGenerator(OpenAI(), topics)
+    entities = [node[0] for node in G.nodes.items() if node[1]['type'] == 'ENTITY']
+    return RelatedTopicGenerator(OpenAI(), topics, entities)

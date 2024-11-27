@@ -39,7 +39,7 @@ class QueryServer:
         related_summaries = self.related_summary_finder.find(query)
         LOG.info("Related summaries: %s", related_summaries)
         answer = self.answer_generator.generate(query, related_summaries)
-        related_topics = self.related_topic_generator.generate(query)
+        related_topics = self.related_topic_generator.generate(query, answer)
         related_topic_info = self._get_related_topic_info(related_topics)
         relevant_summary_info = self._get_relevant_summary_info(related_summaries)
         return "\n\n".join([relevant_summary_info, answer, related_topic_info])
