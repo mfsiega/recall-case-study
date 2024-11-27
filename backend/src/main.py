@@ -1,10 +1,11 @@
 from fastapi import FastAPI
-from backend.src.server import new_server
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from backend.src.server import new_server
+
 app = FastAPI()
-server = new_server("/home/mfsiega/recall-case-study/backend/data")
+server = new_server("/backend/data")
 
 # Define allowed origins (add your Next.js app URL here)
 origins = [
