@@ -9,6 +9,9 @@ from backend.src.related_topic_generator import topic_generator_for_entity_graph
 
 LOG = logging.getLogger('uvicorn.error')
 
+def get_summary_link(summary_id):
+    return f"[{summary_id}](/summaries/{summary_id})"
+
 class QueryServer:
     def __init__(self, summaries, embeddings, entities, client: OpenAI):
         self.related_summary_finder = RelatedSummaryFinder(client, embeddings)
@@ -18,12 +21,13 @@ class QueryServer:
             self.entity_graph
         )
         self.entities = entities
+        self.summaries = summaries
 
     def _get_related_topic_info(self, related_topics):
         results = ["\n\n**Extracted topics**:"]
         for topic in related_topics:
             # Find the summary nodes that are connected to this topic.
-            summaries = [str(node)
+            summaries = [get_summary_link(str(node))
                           for node in self.entity_graph.neighbors(topic) 
                           if self.entity_graph.nodes[node]['type'] == 'SUMMARY']
             if len(summaries) > 15:
